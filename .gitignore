@@ -2,3 +2,4 @@ ignore
 *.csv
 *.xlsx
 output
+.vscode
