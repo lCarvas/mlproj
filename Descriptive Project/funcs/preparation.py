@@ -1,5 +1,8 @@
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+import seaborn as sns
+
+sns.set_theme()
 
 class Preprocessing:
     @staticmethod
@@ -183,7 +186,7 @@ class Preprocessing:
         return data
     
     @staticmethod
-    def preprocessingWrapper(data: pd.DataFrame, metricFeatures: list[str], boolFeatures: list[str], academicFeatures: list[str], demographicFeatures: list[str]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def runPreprocessing(data: pd.DataFrame, metricFeatures: list[str], boolFeatures: list[str], academicFeatures: list[str], demographicFeatures: list[str]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """Runs the preprocessing steps on the dataframe
 
         Args:
@@ -207,3 +210,8 @@ class Preprocessing:
         data = Preprocessing.scaleData(data)
 
         return data, dataAcademic, dataDemographic
+
+class FeatureSelection:
+    @staticmethod
+    def pairPlots(data: pd.DataFrame,name: str) -> None:
+        sns.pairplot(data.sample(1000)).savefig(f"./output/{name} Pair Plot.png")
