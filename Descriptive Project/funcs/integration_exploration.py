@@ -1,10 +1,11 @@
 import pandas as pd
 from funcs.preparation import Preprocessing
 import matplotlib.pyplot as plt
-import seaborn as sns
 from IPython.display import Markdown, display
+import seaborn as sns
 
 sns.set_theme()
+
 
 class Integration:
     @staticmethod

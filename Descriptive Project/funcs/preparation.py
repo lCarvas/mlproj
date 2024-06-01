@@ -4,6 +4,7 @@ import seaborn as sns
 
 sns.set_theme()
 
+
 class Preprocessing:
     @staticmethod
     def fillNa(data: pd.DataFrame, metricFeatures: list[str], boolFeatures: list[str]) -> pd.DataFrame:
@@ -217,5 +218,14 @@ class FeatureSelection:
         sns.pairplot(data.sample(1000)).savefig(f"./output/{name} Pair Plot.png")
 
     @staticmethod
-    def trying():
-        print("oks")
+    def addAverages(data: pd.DataFrame) -> pd.DataFrame:
+        data['Average grades']=(data['Average grade 1st period']+data['Average grade 2nd period'])/2
+        data['Average units taken']=(data['N units taken 1st period']+data['N units taken 2nd period'])/2
+        data['Average scored units']=(data['N scored units 1st period']+data['N scored units 2nd period'])/2
+        data['Average units approved']=(data['N units approved 1st period']+data['N units approved 2nd period'])/2
+        data['Average units credited']=(data['N units credited 1st period']+data['N units credited 2nd period'])/2
+        data['Average unscored units']=(data['N unscored units 1st period']+data['N unscored units 2nd period'])/2
+
+        data['Unit load']=data['N units credited 1st period']+data['N units credited 2nd period'] #! wouldnt unit load be units taken instead of credited?? ask later
+
+        return data
