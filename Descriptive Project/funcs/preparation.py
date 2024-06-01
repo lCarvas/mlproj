@@ -215,3 +215,7 @@ class FeatureSelection:
     @staticmethod
     def pairPlots(data: pd.DataFrame,name: str) -> None:
         sns.pairplot(data.sample(1000)).savefig(f"./output/{name} Pair Plot.png")
+
+    @staticmethod
+    def trying():
+        print("oks")

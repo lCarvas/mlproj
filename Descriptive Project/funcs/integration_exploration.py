@@ -1,5 +1,5 @@
 import pandas as pd
-from funcs.preprocessing import Preprocessing
+from funcs.preparation import Preprocessing
 import matplotlib.pyplot as plt
 import seaborn as sns
 from IPython.display import Markdown, display
