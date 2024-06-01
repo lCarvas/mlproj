@@ -168,15 +168,42 @@ class Preprocessing:
         return data
     
     @staticmethod
-    def encodeSuccess(successData: pd.DataFrame) -> pd.DataFrame:
+    def encodeSuccess(data: pd.DataFrame) -> pd.DataFrame:
         """Replace string values on success by integers
 
         Args:
-            successData (pd.DataFrame): Untreated dataframe 
+            data (pd.DataFrame): Untreated dataframe 
+
+        Returns:
+            pd.DataFrame: Treated dataframe
+        """
+        pd.set_option("future.no_silent_downcasting", False)
+        data = data.infer_objects().replace({'Success': {"Gave up": 0, "Holding on": 1, "Succeeded": 2}})
+
+        return data
+    
+    @staticmethod
+    def preprocessingWrapper(data: pd.DataFrame, metricFeatures: list[str], boolFeatures: list[str], academicFeatures: list[str], demographicFeatures: list[str]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """Runs the preprocessing steps on the dataframe
+
+        Args:
+            data (pd.DataFrame): Un-preprocessed data dataframe
 
         Returns:
             pd.DataFrame: Treated dataframe
         """    
-        successData.replace({'Success': {"Gave up": 0, "Holding on": 1, "Succeeded": 2}}, inplace=True)
+        
+        data = Preprocessing.encodeSuccess(data)
+        data = Preprocessing.fillNa(data, metricFeatures, boolFeatures)
+        data = Preprocessing.removeOutliers(data)
+        data = Preprocessing.groupValues(data)
+        dataAcademic: pd.DataFrame = data[academicFeatures]
+        dataDemographic: pd.DataFrame = data[demographicFeatures]
+        dataAcademic = Preprocessing.getDummies(dataAcademic)
+        dataDemographic = Preprocessing.getDummies(dataDemographic)
+        dataAcademic = Preprocessing.scaleData(dataAcademic)
+        dataDemographic = Preprocessing.scaleData(dataDemographic)
+        data = Preprocessing.getDummies(data)
+        data = Preprocessing.scaleData(data)
 
-        return successData
+        return data, dataAcademic, dataDemographic
