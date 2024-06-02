@@ -170,7 +170,7 @@ class Preprocessing:
         return data
     
     @staticmethod
-    def scaleData(data: pd.DataFrame) -> pd.DataFrame:
+    def scaleData(data: pd.DataFrame) -> tuple[pd.DataFrame, MinMaxScaler]:
         """Tranforms the values in the dataframe to fit in a scale of 0 to 1
 
         Args:
@@ -185,7 +185,7 @@ class Preprocessing:
 
         data = pd.DataFrame(scaler.transform(data), columns = data.columns, index = data.index)
 
-        return data
+        return data, scaler
     
     @staticmethod
     def encodeSuccess(data: pd.DataFrame) -> pd.DataFrame:
@@ -203,15 +203,43 @@ class Preprocessing:
         return data
     
     @staticmethod
+    def addAverages(data: pd.DataFrame) -> pd.DataFrame:
+        data['Average grades']=(data['Average grade 1st period']+data['Average grade 2nd period'])/2
+        data['Average units taken']=(data['N units taken 1st period']+data['N units taken 2nd period'])/2
+        data['Average scored units']=(data['N scored units 1st period']+data['N scored units 2nd period'])/2
+        data['Average units approved']=(data['N units approved 1st period']+data['N units approved 2nd period'])/2
+        data['Average units credited']=(data['N units credited 1st period']+data['N units credited 2nd period'])/2
+        data['Average unscored units']=(data['N unscored units 1st period']+data['N unscored units 2nd period'])/2
+
+        data.drop([
+            'N units credited 1st period',
+            'N units taken 1st period',
+            'N scored units 1st period',
+            'N units approved 1st period',
+            'Average grade 1st period',
+            'N unscored units 1st period',
+            'N units credited 2nd period',
+            'N units taken 2nd period',
+            'N scored units 2nd period',
+            'N units approved 2nd period',
+            'Average grade 2nd period',
+            'N unscored units 2nd period'
+        ], axis=1, inplace=True)
+
+        return data
+    
+    @staticmethod
     def runPreprocessing(
         data: pd.DataFrame, 
         metricFeatures: list[str], 
         boolFeatures: list[str], 
         academicFeatures: list[str], 
         demographicFeatures: list[str],
+        removedAcademicFeatures: list[str] | list = [],
+        removedDemographicFeatures: list[str] | list = [],
         *,
         grouping: Literal["low", "high"] = "high"
-        ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, MinMaxScaler]:
         """Runs the preprocessing steps on the dataframe
 
         Args:
@@ -230,33 +258,29 @@ class Preprocessing:
         data = Preprocessing.fillNa(data, metricFeatures, boolFeatures)
         data = Preprocessing.removeOutliers(data)
         data = Preprocessing.groupValues(data, grouping)
+
         dataAcademic: pd.DataFrame = data[academicFeatures]
         dataDemographic: pd.DataFrame = data[demographicFeatures]
         dataAcademic = Preprocessing.getDummies(dataAcademic)
         dataDemographic = Preprocessing.getDummies(dataDemographic)
-        dataAcademic = Preprocessing.scaleData(dataAcademic)
-        dataDemographic = Preprocessing.scaleData(dataDemographic)
+        dataAcademic, academicScaler = Preprocessing.scaleData(dataAcademic)
+        dataDemographic, demographicScaler = Preprocessing.scaleData(dataDemographic)
+        dataAcademic = Preprocessing.addAverages(dataAcademic)
+        dataAcademic = dataAcademic.drop(removedAcademicFeatures, axis=1)
+        dataDemographic = dataDemographic.drop(removedDemographicFeatures, axis=1)
         data = Preprocessing.getDummies(data)
-        data = Preprocessing.scaleData(data)
+        # data = data.reindex(columns=["Entry Score", "Average score units", "Average grades", "Average units approved", "Success"])
+        data, scaler = Preprocessing.scaleData(data)
 
-        return data, dataAcademic, dataDemographic
+
+        del academicScaler, demographicScaler
+        return data, dataAcademic, dataDemographic, scaler
 
 class FeatureSelection:
     @staticmethod
     def pairPlots(data: pd.DataFrame,name: str) -> None:
         sns.pairplot(data.sample(1000)).savefig(f"./output/{name} Pair Plot.png")
 
-    @staticmethod
-    def addAverages(data: pd.DataFrame) -> pd.DataFrame:
-        data['Average grades']=(data['Average grade 1st period']+data['Average grade 2nd period'])/2
-        data['Average units taken']=(data['N units taken 1st period']+data['N units taken 2nd period'])/2
-        data['Average scored units']=(data['N scored units 1st period']+data['N scored units 2nd period'])/2
-        data['Average units approved']=(data['N units approved 1st period']+data['N units approved 2nd period'])/2
-        data['Average units credited']=(data['N units credited 1st period']+data['N units credited 2nd period'])/2
-        data['Average unscored units']=(data['N unscored units 1st period']+data['N unscored units 2nd period'])/2
-
-        return data
-    
     @staticmethod
     def checkCorr(data: pd.DataFrame, corrMethod: Literal["pearson", "kendall", "spearman"] = "spearman") -> pd.DataFrame:
         mask: np.ndarray | pd.DataFrame | pd.Series
@@ -290,3 +314,50 @@ class FeatureSelection:
         for i in data.columns:
             sns.histplot(data, x = i, hue='label', kde = True, legend = True, palette = 'Dark2')
             plt.show()
+
+    @staticmethod
+    def clusterProfiles(data: pd.DataFrame, label_columns: list, figsize: tuple[int,int], compar_titles=None):
+        """_summary_
+
+        Args:
+            data (_type_): _description_
+            label_columns (_type_): _description_
+            figsize (_type_): _description_
+            compar_titles (_type_, optional): _description_. Defaults to None.
+        """    
+        if compar_titles == None:
+            compar_titles = [""]*len(label_columns)
+
+        fig, axes = plt.subplots(nrows=len(label_columns), ncols=2, figsize=figsize, squeeze=False)
+        for ax, label, titl in zip(axes, label_columns, compar_titles):
+            # Filtering df
+            drop_cols = [i for i in label_columns if i!=label]
+            dfax = data.drop(drop_cols, axis=1)
+
+            # Getting the cluster centroids and counts
+            centroids = dfax.groupby(by=label, as_index=False).mean()
+            counts = dfax.groupby(by=label, as_index=False).count().iloc[:,[0,1]]
+            counts.columns = [label, "counts"]
+            color = sns.color_palette('Dark2')
+
+            # Setting Data
+            pd.plotting.parallel_coordinates(centroids, label, color=color, ax=ax[0])
+            sns.barplot(x=label, y="counts", data=counts, ax=ax[1], palette = color)
+
+            #Setting Layout
+            handles, _ = ax[0].get_legend_handles_labels()
+            cluster_labels = ["Cluster {}".format(i) for i in range(len(handles))]
+            ax[0].annotate(text=titl, xy=(0.95,1.1), xycoords='axes fraction', fontsize=16, fontweight = 'heavy')
+            ax[0].legend(handles, cluster_labels) # Adaptable to number of clusters
+            ax[0].axhline(color="black", linestyle="--")
+            ax[0].set_title("Cluster Means - {} Clusters".format(len(handles)), fontsize=16)
+            ax[0].set_xticklabels(ax[0].get_xticklabels(), rotation=-20)
+            ax[1].set_xticklabels(cluster_labels)
+            ax[1].set_xlabel("")
+            ax[1].set_ylabel("Absolute Frequency")
+            ax[1].set_title("Cluster Sizes - {} Clusters".format(len(handles)), fontsize=16)
+
+
+        plt.subplots_adjust(hspace=0.4, top=0.90, bottom = 0.2)
+        plt.suptitle("Cluster Profiling", fontsize=23)
+        plt.show()
