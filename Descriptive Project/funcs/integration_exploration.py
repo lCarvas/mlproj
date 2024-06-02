@@ -38,7 +38,7 @@ class Exploration:
         Returns:
             pd.DataFrame: Describe function output
         """
-        print(f"Duplicaded: {data.duplicated().sum()}\nMissing: {data.isna().sum().sum()}\nNon-Registered (empty): {(data["Registered"] != "Yes").sum()}")
+        print(f"Duplicaded: {data.duplicated().sum()}\nMissing: {data.isna().sum().sum()}\nNon-Registered (empty): {(data['Registered'] != "Yes").sum()}")
         display(Markdown("### Value Counts"))
         for variable in categoricalFeatures:
             print(data[variable].value_counts())

@@ -96,7 +96,7 @@ class Clustering:
             nClusters (int, optional): Number of clusters to be obtained. Defaults to 0.
 
         Returns:
-            pd.DataFrame: Returns either the original dataframe or the clustered dataframe, depending on if the number of clusters was 0 or larger, respectively.
+            pd.DataFrame: Either the original dataframe or the clustered dataframe, depending on if nClusters is 0 or larger, respectively.
         """    
         somDetails: tuple[sompy.sompy.SOM, int, int] = Clustering.getSomDetails(data)
         if nClusters != 0:
@@ -110,10 +110,10 @@ class Clustering:
         """Graphs pertaining to kmeans
 
         Args:
-            data (pd.DataFrame): _description_
-            elbowGraph (bool, optional): _description_. Defaults to True.
-            silhouetteGraph (bool, optional): _description_. Defaults to True.
-            dendrogram (bool, optional): _description_. Defaults to True.
+            data (pd.DataFrame): Input dataframe
+            elbowGraph (bool, optional): Whether or not to display the elbow graph. Defaults to True.
+            silhouetteGraph (bool, optional): Whether or not to display the silhouette scores graph. Defaults to True.
+            dendrogram (bool, optional): Whether or not to display the dendrogram. Defaults to True.
         """        
         if elbowGraph:
             ks = range(1, 20)
@@ -154,17 +154,17 @@ class Clustering:
     
     @staticmethod
     def runKMeans(data: pd.DataFrame, nClusters: int = 0, *, elbowGraph: bool = True, silhouetteGraph: bool = True, dendrogram: bool = True) -> pd.DataFrame:
-        """_summary_
+        """Runs kmeans clustering if nClusters > 0, else gets the graphs relevant to kmeans
 
         Args:
-            data (pd.DataFrame): _description_
-            nClusters (int, optional): _description_. Defaults to 0.
-            elbowGraph (bool, optional): _description_. Defaults to True.
-            silhouetteGraph (bool, optional): _description_. Defaults to True.
-            dendrogram (bool, optional): _description_. Defaults to True.
+            data (pd.DataFrame): Input dataframe
+            nClusters (int, optional): Number of clusters to be obtained. Defaults to 0.
+            elbowGraph (bool, optional): Whether or not to display the elbow graph. Defaults to True.
+            silhouetteGraph (bool, optional): Whether or not to display the silhouette scores graph. Defaults to True.
+            dendrogram (bool, optional): Whether or not to display the dendrogram. Defaults to True.
 
         Returns:
-            pd.DataFrame: _description_
+            pd.DataFrame: Either the original dataframe or the clustered dataframe, depending on if nClusters is 0 or larger, respectively. 
         """        
         if nClusters == 0:
             Clustering.kmeansGraphs(data, elbowGraph, silhouetteGraph, dendrogram)
@@ -177,16 +177,16 @@ class Clustering:
     
     @staticmethod
     def mergePerspectives(data: pd.DataFrame, dataAcademic: pd.DataFrame, dataDemographic: pd.DataFrame, scaler: sklearn.preprocessing.MinMaxScaler) -> pd.DataFrame:
-        """_summary_
+        """Merges both perspectives
 
         Args:
-            data (pd.DataFrame): _description_
-            dataAcademic (pd.DataFrame): _description_
-            dataDemographic (pd.DataFrame): _description_
-            scaler (sklearn.preprocessing.MinMaxScaler): _description_
+            data (pd.DataFrame): Original unseparated dataframe
+            dataAcademic (pd.DataFrame): Academic perspective dataframe
+            dataDemographic (pd.DataFrame): Demographic perspective dataframe
+            scaler (sklearn.preprocessing.MinMaxScaler): MinMaxScaler object of the original dataframe
 
         Returns:
-            _type_: _description_
+            pd.DataFrame: Final clustered dataframe
         """        
         data = pd.DataFrame(scaler.inverse_transform(data), index=data.index, columns=data.columns)
         data['academic_profile']=dataAcademic['label']
