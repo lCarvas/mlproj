@@ -157,61 +157,45 @@ class Clustering:
         plt.show()
 
     @staticmethod
-    def kmeansGraphs(data: pd.DataFrame):
-        ks = range(1, 20)
-        inertias = [] #Creating pretty list to store results in
+    def kmeansGraphs(data: pd.DataFrame, *, elbowGraph: bool = True, silhouetteGraph: bool = True, dendrogram: bool = True) -> None:
+        if elbowGraph:
+            ks = range(1, 20)
+            inertias: list[float] = []
 
-        for k in ks:
-            # Create a KMeans instance with k clusters: model
-            model = KMeans(n_clusters=k, random_state=100)
+            for k in ks:
+                model = KMeans(n_clusters=k, random_state=51)
+                model.fit(data)
+                inertias.append(model.inertia_)
 
-            # Fit model to samples
-            model.fit(data)
+            plt.plot(ks, inertias)
+            plt.xlabel('k')
+            plt.ylabel('SSD to cluster center')
+            plt.xticks(ks)
+            plt.show()
 
-            # Append the inertia to the list of inertias
-            inertias.append(model.inertia_)
+        if silhouette_score:
+            ks = range(2, 21)
+            sil_score: list[float] = []
 
-        # Plot ks (x-axis) vs inertias (y-axis) using plt.plot().
-        plt.plot(ks, inertias)
+            for k in ks:
+                model = KMeans(n_clusters=k, random_state=51)
+                model.fit_predict(data)
+                sil_score.append(silhouette_score(data, model.labels_, metric='euclidean')) # type: ignore --- love type hinting s_score returns Float, go check declaration, float | float16 | float32 | float64 but is incompatible with float icant with this bro
 
-        # define the label for x axis as 'k'
-        plt.xlabel('k')
-        # define the label for y axis as 'SSD'
-        plt.ylabel('SSD to cluster center')
-        # define the ticks in x axis using the values of ks
-        plt.xticks(ks)
-        # call plt.show()
-        plt.show()
+            plt.plot(ks, sil_score)
+            plt.xlabel('k')
+            plt.ylabel('Sillhouette Score')
+            plt.xticks(ks)
+            plt.show()
 
+        if dendrogram:
+            clusters = hierarchy.linkage(data, method="ward")
 
-        ##setting range for possible values o k - 2 to 12
-        ks = range(2, 21)
-        sil_score = [] #Creating pretty list to store results in
-
-        for k in ks:
-        #    # Create a KMeans instance with k clusters: model
-            model = KMeans(n_clusters=k, random_state=100)
-
-        #    # Fit model to samples
-            model.fit_predict(data)
-
-        #    # Calculate Silhoutte Score
-            sil_score.append(silhouette_score(data, model.labels_, metric='euclidean'))
-
-        plt.plot(ks, sil_score)
-
-        ## define the label for x axis as 'k'
-        plt.xlabel('k')
-        ## define the label for y axis as 'Silhouette Score'
-        plt.ylabel('Sillhouette Score')
-        ## define the ticks in x axis using the values of ks
-        plt.xticks(ks)
-        ## call plt.show()
-        plt.show()
-
-        clusters = hierarchy.linkage(data, method="ward")
-
-        ## create the dendrogram using the hierarchy.dendrogram() method.
-        plt.figure(figsize=(8, 6))
-        hierarchy.dendrogram(clusters)
-        plt.show()
+            plt.figure(figsize=(8, 6))
+            hierarchy.dendrogram(clusters)
+            plt.show()
+    
+    @staticmethod
+    def runKMeans(data: pd.DataFrame, nClusters: int):
+        kmeans_2: KMeans = KMeans(n_clusters = nClusters, random_state = 100).fit(data)
+        data['label'] = kmeans_2.predict(data)

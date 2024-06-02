@@ -255,8 +255,6 @@ class FeatureSelection:
         data['Average units credited']=(data['N units credited 1st period']+data['N units credited 2nd period'])/2
         data['Average unscored units']=(data['N unscored units 1st period']+data['N unscored units 2nd period'])/2
 
-        data['Unit load']=data['N units credited 1st period']+data['N units credited 2nd period'] #! wouldnt unit load be units taken instead of credited?? ask later
-
         return data
     
     @staticmethod
