@@ -114,7 +114,7 @@ class Clustering:
             inertias: list[float] = []
 
             for k in ks:
-                model = KMeans(n_clusters=k, random_state=51)
+                model = KMeans(n_clusters=k, random_state=66)
                 model.fit(data)
                 inertias.append(model.inertia_)
 
@@ -129,7 +129,7 @@ class Clustering:
             sil_score: list[float] = []
 
             for k in ks:
-                model = KMeans(n_clusters=k, random_state=51)
+                model = KMeans(n_clusters=k, random_state=66)
                 model.fit_predict(data)
                 sil_score.append(silhouette_score(data, model.labels_, metric='euclidean')) # type: ignore --- love type hinting s_score returns Float, go check declaration, float | float16 | float32 | float64 but is incompatible with float icant with this bro
 
@@ -176,5 +176,5 @@ class Clustering:
         unusedColumnsAll = set(data.columns.difference(usedColumnsAll)) # type: ignore cant be bothered
         unusedColumnsAll.remove('final_groups')
 
-        return data.drop(unusedColumnsAll,axis=1).groupby(['final_groups']).describe().T # type: ignore cant be bothered 2 electric boogaloo
+        return data.drop(unusedColumnsAll,axis=1) # type: ignore cant be bothered 2 electric boogaloo
         

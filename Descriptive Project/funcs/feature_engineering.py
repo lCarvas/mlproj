@@ -238,7 +238,7 @@ class Preprocessing:
         removedDemographicFeatures: list[str] | list = [],
         *,
         grouping: Literal["low", "high"] = "high"
-        ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, MinMaxScaler]:
+        ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, MinMaxScaler, MinMaxScaler, MinMaxScaler]:
         """Runs the preprocessing steps on the dataframe
 
         Args:
@@ -252,7 +252,10 @@ class Preprocessing:
         Returns:
             tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: Treated dataframes, original, academic perspective & demographic perspective, respectively
         """        
-        
+        data = data.drop('Observations', axis=1).drop_duplicates()
+        data = data[data['Registered'] == 'Yes']
+        data = data.drop('Registered', axis=1)
+
         data = Preprocessing.encodeSuccess(data)
         data = Preprocessing.fillNa(data, metricFeatures, boolFeatures)
         data = Preprocessing.addAverages(data)
@@ -265,20 +268,18 @@ class Preprocessing:
         dataAcademic = Preprocessing.getDummies(dataAcademic)
         dataDemographic = Preprocessing.getDummies(dataDemographic)
 
+        dataAcademic = dataAcademic.drop(removedAcademicFeatures, axis=1)
+        dataDemographic = dataDemographic.drop(removedDemographicFeatures, axis=1)
+
         dataAcademic, academicScaler = Preprocessing.scaleData(dataAcademic)
         dataDemographic, demographicScaler = Preprocessing.scaleData(dataDemographic)
 
-        dataAcademic = dataAcademic.drop(removedAcademicFeatures, axis=1)
-        dataDemographic = dataDemographic.drop(removedDemographicFeatures, axis=1)
-        
-        dataAcademic = dataAcademic[["Entry score", "Average scored units", "Average grades", "Average units approved", "Success"]]
+        # dataAcademic = dataAcademic[["Entry score", "Average scored units", "Average grades", "Average units approved", "Success"]]
 
         data = Preprocessing.getDummies(data)
         data, scaler = Preprocessing.scaleData(data)
 
-
-        del academicScaler, demographicScaler
-        return data, dataAcademic, dataDemographic, scaler
+        return data, dataAcademic, dataDemographic, scaler, academicScaler, demographicScaler
 
 class FeatureSelection:
     @staticmethod
@@ -292,7 +293,7 @@ class FeatureSelection:
         mask = np.zeros_like(data.corr(method=corrMethod))
         mask[np.triu_indices_from(mask)] = True
         with sns.axes_style("white"):
-            f, ax = plt.subplots(figsize=(15,15))
+            f, ax = plt.subplots(figsize=(50,50))
             ax = sns.heatmap(data.corr(method=corrMethod),mask=mask, annot = True,cmap='coolwarm',square=True,vmin=-1, vmax=1)
 
         cor_spearman: pd.DataFrame = data.corr(method=corrMethod)
@@ -314,9 +315,9 @@ class FeatureSelection:
         return high_cor_filtered
     
     @staticmethod
-    def getVariableClusterGraphs(data: pd.DataFrame) -> None:
+    def getVariableClusterGraphs(data: pd.DataFrame, label:str) -> None:
         for i in data.columns:
-            sns.histplot(data, x = i, hue='label', kde = True, legend = True, palette = 'Dark2')
+            sns.histplot(data, x = i, hue=label, kde = True, legend = True, palette = 'Dark2')
             plt.show()
 
     @staticmethod
