@@ -1,11 +1,11 @@
 import sklearn
 import sklearn.preprocessing
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 import sompy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
 from scipy.cluster import hierarchy
 import seaborn as sns
 

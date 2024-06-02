@@ -261,14 +261,19 @@ class Preprocessing:
 
         dataAcademic: pd.DataFrame = data[academicFeatures]
         dataDemographic: pd.DataFrame = data[demographicFeatures]
+
         dataAcademic = Preprocessing.getDummies(dataAcademic)
         dataDemographic = Preprocessing.getDummies(dataDemographic)
+
         dataAcademic, academicScaler = Preprocessing.scaleData(dataAcademic)
         dataDemographic, demographicScaler = Preprocessing.scaleData(dataDemographic)
+
         dataAcademic = dataAcademic.drop(removedAcademicFeatures, axis=1)
         dataDemographic = dataDemographic.drop(removedDemographicFeatures, axis=1)
-        data = Preprocessing.getDummies(data)
+        
         dataAcademic = dataAcademic[["Entry score", "Average scored units", "Average grades", "Average units approved", "Success"]]
+
+        data = Preprocessing.getDummies(data)
         data, scaler = Preprocessing.scaleData(data)
 
 
