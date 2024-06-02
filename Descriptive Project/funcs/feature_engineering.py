@@ -203,27 +203,20 @@ class Preprocessing:
     
     @staticmethod
     def addAverages(data: pd.DataFrame) -> pd.DataFrame:
+        """Group 'period' features into one, the average of both
+
+        Args:
+            data (pd.DataFrame): Dataframe with 'period' features ungrouped
+
+        Returns:
+            pd.DataFrame: Dataframe with 'period' features grouped
+        """        
         data['Average grades']=(data['Average grade 1st period']+data['Average grade 2nd period'])/2
         data['Average units taken']=(data['N units taken 1st period']+data['N units taken 2nd period'])/2
         data['Average scored units']=(data['N scored units 1st period']+data['N scored units 2nd period'])/2
         data['Average units approved']=(data['N units approved 1st period']+data['N units approved 2nd period'])/2
         data['Average units credited']=(data['N units credited 1st period']+data['N units credited 2nd period'])/2
         data['Average unscored units']=(data['N unscored units 1st period']+data['N unscored units 2nd period'])/2
-
-        # data.drop([
-        #     'N units credited 1st period',
-        #     'N units taken 1st period',
-        #     'N scored units 1st period',
-        #     'N units approved 1st period',
-        #     'Average grade 1st period',
-        #     'N unscored units 1st period',
-        #     'N units credited 2nd period',
-        #     'N units taken 2nd period',
-        #     'N scored units 2nd period',
-        #     'N units approved 2nd period',
-        #     'Average grade 2nd period',
-        #     'N unscored units 2nd period'
-        # ], axis=1, inplace=True)
 
         return data
     
@@ -243,14 +236,16 @@ class Preprocessing:
 
         Args:
             data (pd.DataFrame): Un-preprocessed data dataframe
-            metricFeatures (list[str]): _description_
-            boolFeatures (list[str]): _description_
-            academicFeatures (list[str]): _description_
-            demographicFeatures (list[str]): _description_
-            grouping (Literal['low', 'high']): _description_
+            metricFeatures (list[str]): Metric features of the dataframe
+            boolFeatures (list[str]): Categorical features of the dataframe
+            academicFeatures (list[str]): Features belonging to the academic perspective
+            demographicFeatures (list[str]): Features belonging to the demographic perspective
+            removedAcademicFeatures (list[str] | list, optional): Features removed from the academic perspective. Defaults to [].
+            removedDemographicFeatures (list[str] | list, optional): Features removed from the demographic perspective. Defaults to [].
+            grouping (Literal['low', 'high'], optional): Choose a way to group the variables. Defaults to "high".
 
         Returns:
-            tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: Treated dataframes, original, academic perspective & demographic perspective, respectively
+            tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, MinMaxScaler, MinMaxScaler, MinMaxScaler]: Treated dataframes, original, academic perspective & demographic perspective, and the their respective MinMaxScaler objects used to unscale when showing the results
         """        
         data = data.drop('Observations', axis=1).drop_duplicates()
         data = data[data['Registered'] == 'Yes']
@@ -283,11 +278,26 @@ class Preprocessing:
 
 class FeatureSelection:
     @staticmethod
-    def pairPlots(data: pd.DataFrame,name: str) -> None:
+    def pairPlots(data: pd.DataFrame, name: str) -> None:
+        """Show pair plots for the dataframe
+
+        Args:
+            data (pd.DataFrame): Dataframe to get the pair plot generated for
+            name (str): Name to be used in the graph title and output file name
+        """        
         sns.pairplot(data.sample(1000)).savefig(f"./output/{name} Pair Plot.png")
 
     @staticmethod
     def checkCorr(data: pd.DataFrame, corrMethod: Literal["pearson", "kendall", "spearman"] = "spearman") -> pd.DataFrame:
+        """Obtain correlation matrices and features that have a correlation above a hardcoded threshold
+
+        Args:
+            data (pd.DataFrame): Data to get correlation matrix from
+            corrMethod (Literal['pearson', 'kendall', 'spearman'], optional): Correlation method. Defaults to "spearman".
+
+        Returns:
+            pd.DataFrame: Dataframe containing the features that have a correlation higher than the threshold
+        """        
         mask: np.ndarray | pd.DataFrame | pd.Series
         
         mask = np.zeros_like(data.corr(method=corrMethod))
@@ -316,20 +326,26 @@ class FeatureSelection:
     
     @staticmethod
     def getVariableClusterGraphs(data: pd.DataFrame, label:str) -> None:
+        """Shows counts of the values of each feature in each cluster
+
+        Args:
+            data (pd.DataFrame): Dataframe to get the data from
+            label (str): Column name of the cluster labels
+        """        
         for i in data.columns:
             sns.histplot(data, x = i, hue=label, kde = True, legend = True, palette = 'Dark2')
             plt.show()
 
     @staticmethod
     def clusterProfiles(data: pd.DataFrame, label_columns: list, figsize: tuple[int,int], compar_titles=None):
-        """_summary_
+        """Get cluster profiles
 
         Args:
-            data (_type_): _description_
-            label_columns (_type_): _description_
-            figsize (_type_): _description_
-            compar_titles (_type_, optional): _description_. Defaults to None.
-        """    
+            data (pd.DataFrame): Dataframe to get the data from
+            label_columns (list): Column names of the cluster labels
+            figsize (tuple[int,int]): Size of the figure
+            compar_titles (_type_, optional): legit idk what this is???. Defaults to None.
+        """
         if compar_titles == None:
             compar_titles = [""]*len(label_columns)
 

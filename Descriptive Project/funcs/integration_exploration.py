@@ -9,6 +9,14 @@ sns.set_theme()
 class Integration:
     @staticmethod
     def importdata(path: str) -> pd.DataFrame:
+        """Imports the data from the specified path and outputs it as a dataframe
+
+        Args:
+            path (str): path from which to import the data
+
+        Returns:
+            pd.DataFrame: Dataframe
+        """        
         dataDF: pd.DataFrame = pd.read_excel(path + 'data/Descriptive_Data.xlsx')
         dfSuccess: pd.DataFrame = pd.read_excel(path+'data/Descriptive_Data.xlsx',sheet_name=2)
         dataDF = dataDF.set_index('Userid')
@@ -20,6 +28,16 @@ class Integration:
 class Exploration:
     @staticmethod
     def describeData(data: pd.DataFrame, metricFeatures: list[str], categoricalFeatures: list[str]) -> pd.DataFrame:
+        """Outputs information about the dataframe
+
+        Args:
+            data (pd.DataFrame): Dataframe to be analyzed
+            metricFeatures (list[str]): Metric features of the dataframe
+            categoricalFeatures (list[str]): Categorical features of the dataframe
+
+        Returns:
+            pd.DataFrame: Describe function output
+        """
         print(f"Duplicaded: {data.duplicated().sum()}\nMissing: {data.isna().sum().sum()}\nNon-Registered (empty): {(data["Registered"] != "Yes").sum()}")
         display(Markdown("### Value Counts"))
         for variable in categoricalFeatures:
@@ -36,5 +54,5 @@ class Exploration:
             plt.figure(i)
             sns.boxplot(x=col, data=data)
 
-        return data.describe()
+        return data.describe(include = "all")
     

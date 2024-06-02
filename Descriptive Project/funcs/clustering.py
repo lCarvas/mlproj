@@ -14,16 +14,16 @@ sns.set_theme()
 
 class Clustering:
     @staticmethod
-    def getSomDetails(data: pd.DataFrame, rows: int = 25, cols: int = 25) -> tuple[sompy.sompy.SOM, int, int, np.float32]:
-        """_summary_
+    def getSomDetails(data: pd.DataFrame, rows: int = 25, cols: int = 25) -> tuple[sompy.sompy.SOM, int, int]:
+        """Get som object, rows and columns of the som
 
         Args:
-            data (pd.DataFrame): _description_
-            rows (int, optional): _description_. Defaults to 25.
-            cols (int, optional): _description_. Defaults to 25.
+            data (pd.DataFrame): Input Dataframe
+            rows (int, optional): Number of rows of the som. Defaults to 25.
+            cols (int, optional): Number of columns of the som. Defaults to 25.
 
         Returns:
-            tuple[sompy.sompy.SOM, int, int, np.float32]: _description_
+            tuple[sompy.sompy.SOM, int, int, np.float32]: Return the som, rows and cols of the som
         """
         df_som = np.float32(data) # type: ignore love type hinting
         mapsize: list[int] = [rows, cols]
@@ -38,19 +38,18 @@ class Clustering:
         
         som.train(n_job=1, verbose=None, train_rough_len=3, train_finetune_len=5) # type: ignore
 
-        return som,rows,cols,df_som
+        return som, rows, cols
 
     @staticmethod
-    def getSomGraphs(data: pd.DataFrame, somDetails: tuple[sompy.sompy.SOM, int, int, np.float32], name: str) -> None:
-        """_summary_
+    def getSomGraphs(data: pd.DataFrame, somDetails: tuple[sompy.sompy.SOM, int, int], name: str) -> None:
+        """Get graphs pertaining to som
 
         Args:
-            data (pd.DataFrame): _description_
-            somDetails (tuple[sompy.sompy.SOM, int, int, np.float32]): _description_
-            name (str): _description_
+            data (pd.DataFrame): Input dataframe
+            somDetails (tuple[sompy.sompy.SOM, int, int, np.float32]): Som details
+            name (str): Name to be used in the graphs
         """
-
-        u = sompy.umatrix.UMatrixView(width=somDetails[1], height=somDetails[2], title=f'{name} U-matrix', show_axis=True, text_size=8, show_text=True)
+        u = sompy.umatrix.UMatrixView(width=somDetails[2], height=somDetails[1], title=f'{name} U-matrix', show_axis=True, text_size=8, show_text=True)
 
         #This is the Umat value
         UMAT  = u.build_u_matrix(som=somDetails[0], distance=1, row_normalized=False)
@@ -65,20 +64,19 @@ class Clustering:
     @staticmethod
     def sompyClustering(
         data: pd.DataFrame,
-        somDetails: tuple[sompy.sompy.SOM, int, int, np.float32],
+        somDetails: tuple[sompy.sompy.SOM, int, int],
         nClusters: int = 0,
         ) -> pd.DataFrame:
-        """_summary_
+        """Clusters the values using sompy
 
         Args:
-            data (pd.DataFrame): _description_
-            somDetails (tuple[sompy.sompy.SOM, int, int, np.float32]): _description_
-            name (str): _description_
-            nClusters (int, optional): _description_. Defaults to 0.
+            data (pd.DataFrame): Dataframe to be clustered
+            somDetails (tuple[sompy.sompy.SOM, int, int, np.float32]): Som details
+            nClusters (int, optional): Number of clusters to be obtained. Defaults to 0.
 
         Returns:
-            tuple[sompy.hitmap.HitMapView, pd.DataFrame]: _description_
-        """        
+            pd.DataFrame: Clustered dataframe
+        """     
         bmus = somDetails[0].project_data(data)
         somDetails[0].cluster(n_clusters=nClusters)
         labels = getattr(somDetails[0], 'cluster_labels')
@@ -90,17 +88,17 @@ class Clustering:
 
     @staticmethod
     def somWrapper(data: pd.DataFrame, name: str, nClusters: int = 0) -> pd.DataFrame:
-        """_summary_
+        """Organizes the som related functions and runs the necessary ones
 
         Args:
-            data (pd.DataFrame): _description_
-            name (str): _description_
-            nClusters (int, optional): _description_. Defaults to 0.
+            data (pd.DataFrame): Input dataframe
+            name (str): Name for the graphs
+            nClusters (int, optional): Number of clusters to be obtained. Defaults to 0.
 
         Returns:
-            tuple[sompy.hitmap.HitMapView, pd.DataFrame] | None: _description_
-        """        
-        somDetails: tuple[sompy.sompy.SOM, int, int, np.float32] = Clustering.getSomDetails(data)
+            pd.DataFrame: Returns either the original dataframe or the clustered dataframe, depending on if the number of clusters was 0 or larger, respectively.
+        """    
+        somDetails: tuple[sompy.sompy.SOM, int, int] = Clustering.getSomDetails(data)
         if nClusters != 0:
             # print(data.shape, somDetails[0])
             return Clustering.sompyClustering(data, somDetails, nClusters)
@@ -109,6 +107,14 @@ class Clustering:
         
     @staticmethod
     def kmeansGraphs(data: pd.DataFrame, elbowGraph: bool = True, silhouetteGraph: bool = True, dendrogram: bool = True) -> None:
+        """Graphs pertaining to kmeans
+
+        Args:
+            data (pd.DataFrame): _description_
+            elbowGraph (bool, optional): _description_. Defaults to True.
+            silhouetteGraph (bool, optional): _description_. Defaults to True.
+            dendrogram (bool, optional): _description_. Defaults to True.
+        """        
         if elbowGraph:
             ks = range(1, 20)
             inertias: list[float] = []
@@ -148,6 +154,18 @@ class Clustering:
     
     @staticmethod
     def runKMeans(data: pd.DataFrame, nClusters: int = 0, *, elbowGraph: bool = True, silhouetteGraph: bool = True, dendrogram: bool = True) -> pd.DataFrame:
+        """_summary_
+
+        Args:
+            data (pd.DataFrame): _description_
+            nClusters (int, optional): _description_. Defaults to 0.
+            elbowGraph (bool, optional): _description_. Defaults to True.
+            silhouetteGraph (bool, optional): _description_. Defaults to True.
+            dendrogram (bool, optional): _description_. Defaults to True.
+
+        Returns:
+            pd.DataFrame: _description_
+        """        
         if nClusters == 0:
             Clustering.kmeansGraphs(data, elbowGraph, silhouetteGraph, dendrogram)
             return data
@@ -158,7 +176,18 @@ class Clustering:
         return data
     
     @staticmethod
-    def mergePerspectives(data: pd.DataFrame, dataAcademic: pd.DataFrame, dataDemographic: pd.DataFrame, scaler: sklearn.preprocessing.MinMaxScaler):
+    def mergePerspectives(data: pd.DataFrame, dataAcademic: pd.DataFrame, dataDemographic: pd.DataFrame, scaler: sklearn.preprocessing.MinMaxScaler) -> pd.DataFrame:
+        """_summary_
+
+        Args:
+            data (pd.DataFrame): _description_
+            dataAcademic (pd.DataFrame): _description_
+            dataDemographic (pd.DataFrame): _description_
+            scaler (sklearn.preprocessing.MinMaxScaler): _description_
+
+        Returns:
+            _type_: _description_
+        """        
         data = pd.DataFrame(scaler.inverse_transform(data), index=data.index, columns=data.columns)
         data['academic_profile']=dataAcademic['label']
         data['demographic_profile']=dataDemographic['label']
