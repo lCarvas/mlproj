@@ -1,5 +1,8 @@
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+import matplotlib.pyplot as plt
+import numpy as np
+from typing import Literal
 import seaborn as sns
 
 sns.set_theme()
@@ -97,26 +100,39 @@ class Preprocessing:
         return data
     
     @staticmethod
-    def groupValues(data: pd.DataFrame) -> pd.DataFrame:
+    def groupValues(data: pd.DataFrame, grouping: Literal["low", "high"] = "high") -> pd.DataFrame:
         """replace values on columns that have lots of different values that can be grouped together to reduce the total number of dummies created after
 
         Args:
             data (`pd.DataFrame`): Dataframe to be treated
+            grouping (Literal['low', 'high']): _description_
 
         Returns:
             `pd.DataFrame`: Treated dataframe
         """    
         
-        for col in ["Mother's qualification",  "Father's qualification", "Previous qualification"]:
-            data.replace(regex={col: {r"(?i)^no school.*$": '0',
-                                r"(?i)^[0-4][a-z]{2} grade.*$": '1', 
-                                r"(?i)^[5-9]th grade.*$": '2', 
-                                r"(?i)^1[0-2]th grade.*$": '3', 
-                                r"(?i)^incomplete bachelor.*$": '4', 
-                                r"(?i)^bachelor degree.*$": '5',
-                                r"(?i)^post-grad.*$": '6',
-                                r"(?i)^master degree.*$": '7',
-                                r"(?i)^phd.*$": '8',}}, inplace=True)
+        if grouping == "low": 
+            for col in ["Mother's qualification",  "Father's qualification", "Previous qualification"]:
+                data.replace(regex={col: {r"(?i)^no school.*$": '0',
+                                    r"(?i)^[0-4][a-z]{2} grade.*$": '1', 
+                                    r"(?i)^[5-9]th grade.*$": '2', 
+                                    r"(?i)^1[0-2]th grade.*$": '3', 
+                                    r"(?i)^incomplete bachelor.*$": '4', 
+                                    r"(?i)^bachelor degree.*$": '5',
+                                    r"(?i)^post-grad.*$": '6',
+                                    r"(?i)^master degree.*$": '7',
+                                    r"(?i)^phd.*$": '8',}}, inplace=True)
+        elif grouping == "high":
+            for col in ["Mother's qualification",  "Father's qualification", "Previous qualification"]:
+                data.replace(regex={col: {r"(?i)^no school.*$": 'None',
+                                    r"(?i)^[0-4][a-z]{2} grade.*$": 'Lower', 
+                                    r"(?i)^[5-9]th grade.*$": 'Lower', 
+                                    r"(?i)^1[0-2]th grade.*$": 'Middle', 
+                                    r"(?i)^incomplete bachelor.*$": 'Higher', 
+                                    r"(?i)^bachelor degree.*$": 'Higher',
+                                    r"(?i)^post-grad.*$": 'Higher',
+                                    r"(?i)^master degree.*$": 'Higher',
+                                    r"(?i)^phd.*$": 'Higher',}}, inplace=True)
         
         for col in ["Mother's occupation", "Father's occupation"]:
             data.replace(to_replace={col: ["Superior-level Professional", "Intermediate-level Professional", "Politician/CEO", "Teacher", "Information Technology Specialist"]}, value="Professional Fields", inplace=True)
@@ -187,20 +203,33 @@ class Preprocessing:
         return data
     
     @staticmethod
-    def runPreprocessing(data: pd.DataFrame, metricFeatures: list[str], boolFeatures: list[str], academicFeatures: list[str], demographicFeatures: list[str]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def runPreprocessing(
+        data: pd.DataFrame, 
+        metricFeatures: list[str], 
+        boolFeatures: list[str], 
+        academicFeatures: list[str], 
+        demographicFeatures: list[str],
+        *,
+        grouping: Literal["low", "high"] = "high"
+        ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """Runs the preprocessing steps on the dataframe
 
         Args:
             data (pd.DataFrame): Un-preprocessed data dataframe
+            metricFeatures (list[str]): _description_
+            boolFeatures (list[str]): _description_
+            academicFeatures (list[str]): _description_
+            demographicFeatures (list[str]): _description_
+            grouping (Literal['low', 'high']): _description_
 
         Returns:
-            pd.DataFrame: Treated dataframe
-        """    
+            tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: Treated dataframes, original, academic perspective & demographic perspective, respectively
+        """        
         
         data = Preprocessing.encodeSuccess(data)
         data = Preprocessing.fillNa(data, metricFeatures, boolFeatures)
         data = Preprocessing.removeOutliers(data)
-        data = Preprocessing.groupValues(data)
+        data = Preprocessing.groupValues(data, grouping)
         dataAcademic: pd.DataFrame = data[academicFeatures]
         dataDemographic: pd.DataFrame = data[demographicFeatures]
         dataAcademic = Preprocessing.getDummies(dataAcademic)
@@ -229,3 +258,37 @@ class FeatureSelection:
         data['Unit load']=data['N units credited 1st period']+data['N units credited 2nd period'] #! wouldnt unit load be units taken instead of credited?? ask later
 
         return data
+    
+    @staticmethod
+    def checkCorr(data: pd.DataFrame, corrMethod: Literal["pearson", "kendall", "spearman"] = "spearman") -> pd.DataFrame:
+        mask: np.ndarray | pd.DataFrame | pd.Series
+        
+        mask = np.zeros_like(data.corr(method=corrMethod))
+        mask[np.triu_indices_from(mask)] = True
+        with sns.axes_style("white"):
+            f, ax = plt.subplots(figsize=(15,15))
+            ax = sns.heatmap(data.corr(method=corrMethod),mask=mask, annot = True,cmap='coolwarm',square=True,vmin=-1, vmax=1)
+
+        cor_spearman: pd.DataFrame = data.corr(method=corrMethod)
+
+        pd.set_option('display.max_columns',None)
+        pd.set_option('display.max_rows',None)
+        # display only highly correlated (>=80%) features
+        threshold: float = 0.8
+
+        mask = cor_spearman.abs() > threshold
+
+        high_cor: pd.DataFrame = cor_spearman[mask].stack().reset_index()
+        high_cor.columns = ['Feature 1', 'Feature 2', 'Correlation']
+
+        # filter out where Feature1==Feature2
+        mask = high_cor['Feature 1'] == high_cor['Feature 2']
+        high_cor_filtered: pd.DataFrame = high_cor[~mask]
+
+        return high_cor_filtered
+    
+    @staticmethod
+    def getVariableClusterGraphs(data: pd.DataFrame) -> None:
+        for i in data.columns:
+            sns.histplot(data, x = i, hue='label', kde = True, legend = True, palette = 'Dark2')
+            plt.show()

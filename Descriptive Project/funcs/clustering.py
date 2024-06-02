@@ -2,6 +2,9 @@ import sompy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from scipy.cluster import hierarchy
 import seaborn as sns
 
 sns.set_theme()
@@ -34,7 +37,7 @@ class Clustering:
         return som,rows,cols,df_som
 
     @staticmethod
-    def getGraphs(data: pd.DataFrame, somDetails: tuple[sompy.sompy.SOM, int, int, np.float32], name: str) -> None:
+    def getSomGraphs(data: pd.DataFrame, somDetails: tuple[sompy.sompy.SOM, int, int, np.float32], name: str) -> None:
         """_summary_
 
         Args:
@@ -57,7 +60,12 @@ class Clustering:
         comp_planes.show(somDetails[0], what='codebook', which_dim='all', col_sz=8)
 
     @staticmethod
-    def clustering(data: pd.DataFrame, somDetails: tuple[sompy.sompy.SOM, int, int, np.float32],name: str, nClusters: int = 0) -> tuple[sompy.hitmap.HitMapView, pd.DataFrame]:
+    def clustering(
+        data: pd.DataFrame,
+        somDetails: tuple[sompy.sompy.SOM, int, int, np.float32],
+        name: str, nClusters: int = 0,
+        showHitmap: bool = True
+        ) -> tuple[sompy.hitmap.HitMapView, pd.DataFrame] | pd.DataFrame:
         """_summary_
 
         Args:
@@ -71,18 +79,21 @@ class Clustering:
         """        
         somDetails[0].cluster(n_clusters=nClusters)
         labels = getattr(somDetails[0], 'cluster_labels')
-        h = sompy.hitmap.HitMapView(10, 10, f'{name} Hitmap', text_size=8, show_text=True)
-        h.show(somDetails[0], )
         bmus = somDetails[0].project_data(somDetails[3])
         data['bmu'] = bmus
         data['label'] = labels[data['bmu']]
-
         clusteringResult: pd.DataFrame = data.groupby(['label']).describe().T
 
-        return h, clusteringResult
+        if showHitmap:
+            h = sompy.hitmap.HitMapView(10, 10, f'{name} Hitmap', text_size=8, show_text=True)
+            h.show(somDetails[0])
+
+            return h, clusteringResult
+        
+        return clusteringResult
 
     @staticmethod
-    def somWrapper(data: pd.DataFrame, name: str, nClusters: int = 0) -> tuple[sompy.hitmap.HitMapView, pd.DataFrame] | None:
+    def somWrapper(data: pd.DataFrame, name: str, nClusters: int = 0, showHitmap: bool = True) -> tuple[sompy.hitmap.HitMapView, pd.DataFrame] | pd.DataFrame | None:
         """_summary_
 
         Args:
@@ -94,9 +105,9 @@ class Clustering:
             tuple[sompy.hitmap.HitMapView, pd.DataFrame] | None: _description_
         """        
         somDetails: tuple[sompy.sompy.SOM, int, int, np.float32] = Clustering.getSomDetails(data)
-        Clustering.getGraphs(data, somDetails, name)
+        Clustering.getSomGraphs(data, somDetails, name)
         if nClusters != 0:
-            return Clustering.clustering(data, somDetails, name, nClusters)
+            return Clustering.clustering(data, somDetails, name, nClusters, showHitmap)
         
     @staticmethod
     def clusterProfiles(data, label_columns, figsize, compar_titles=None):
@@ -143,4 +154,64 @@ class Clustering:
 
         plt.subplots_adjust(hspace=0.4, top=0.90, bottom = 0.2)
         plt.suptitle("Cluster Profiling", fontsize=23)
+        plt.show()
+
+    @staticmethod
+    def kmeansGraphs(data: pd.DataFrame):
+        ks = range(1, 20)
+        inertias = [] #Creating pretty list to store results in
+
+        for k in ks:
+            # Create a KMeans instance with k clusters: model
+            model = KMeans(n_clusters=k, random_state=100)
+
+            # Fit model to samples
+            model.fit(data)
+
+            # Append the inertia to the list of inertias
+            inertias.append(model.inertia_)
+
+        # Plot ks (x-axis) vs inertias (y-axis) using plt.plot().
+        plt.plot(ks, inertias)
+
+        # define the label for x axis as 'k'
+        plt.xlabel('k')
+        # define the label for y axis as 'SSD'
+        plt.ylabel('SSD to cluster center')
+        # define the ticks in x axis using the values of ks
+        plt.xticks(ks)
+        # call plt.show()
+        plt.show()
+
+
+        ##setting range for possible values o k - 2 to 12
+        ks = range(2, 21)
+        sil_score = [] #Creating pretty list to store results in
+
+        for k in ks:
+        #    # Create a KMeans instance with k clusters: model
+            model = KMeans(n_clusters=k, random_state=100)
+
+        #    # Fit model to samples
+            model.fit_predict(data)
+
+        #    # Calculate Silhoutte Score
+            sil_score.append(silhouette_score(data, model.labels_, metric='euclidean'))
+
+        plt.plot(ks, sil_score)
+
+        ## define the label for x axis as 'k'
+        plt.xlabel('k')
+        ## define the label for y axis as 'Silhouette Score'
+        plt.ylabel('Sillhouette Score')
+        ## define the ticks in x axis using the values of ks
+        plt.xticks(ks)
+        ## call plt.show()
+        plt.show()
+
+        clusters = hierarchy.linkage(data, method="ward")
+
+        ## create the dendrogram using the hierarchy.dendrogram() method.
+        plt.figure(figsize=(8, 6))
+        hierarchy.dendrogram(clusters)
         plt.show()

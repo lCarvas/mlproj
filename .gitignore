@@ -3,3 +3,4 @@ ignore
 *.xlsx
 output
 .vscode
+*.pyc
