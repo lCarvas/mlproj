@@ -197,8 +197,7 @@ class Preprocessing:
         Returns:
             pd.DataFrame: Treated dataframe
         """
-        pd.set_option("future.no_silent_downcasting", False)
-        data = data.infer_objects().replace({'Success': {"Gave up": 0, "Holding on": 1, "Succeeded": 2}})
+        data = data.replace({'Success': {"Gave up": 0, "Holding on": 1, "Succeeded": 2}})
 
         return data
     
@@ -211,20 +210,20 @@ class Preprocessing:
         data['Average units credited']=(data['N units credited 1st period']+data['N units credited 2nd period'])/2
         data['Average unscored units']=(data['N unscored units 1st period']+data['N unscored units 2nd period'])/2
 
-        data.drop([
-            'N units credited 1st period',
-            'N units taken 1st period',
-            'N scored units 1st period',
-            'N units approved 1st period',
-            'Average grade 1st period',
-            'N unscored units 1st period',
-            'N units credited 2nd period',
-            'N units taken 2nd period',
-            'N scored units 2nd period',
-            'N units approved 2nd period',
-            'Average grade 2nd period',
-            'N unscored units 2nd period'
-        ], axis=1, inplace=True)
+        # data.drop([
+        #     'N units credited 1st period',
+        #     'N units taken 1st period',
+        #     'N scored units 1st period',
+        #     'N units approved 1st period',
+        #     'Average grade 1st period',
+        #     'N unscored units 1st period',
+        #     'N units credited 2nd period',
+        #     'N units taken 2nd period',
+        #     'N scored units 2nd period',
+        #     'N units approved 2nd period',
+        #     'Average grade 2nd period',
+        #     'N unscored units 2nd period'
+        # ], axis=1, inplace=True)
 
         return data
     
@@ -256,6 +255,7 @@ class Preprocessing:
         
         data = Preprocessing.encodeSuccess(data)
         data = Preprocessing.fillNa(data, metricFeatures, boolFeatures)
+        data = Preprocessing.addAverages(data)
         data = Preprocessing.removeOutliers(data)
         data = Preprocessing.groupValues(data, grouping)
 
@@ -265,11 +265,10 @@ class Preprocessing:
         dataDemographic = Preprocessing.getDummies(dataDemographic)
         dataAcademic, academicScaler = Preprocessing.scaleData(dataAcademic)
         dataDemographic, demographicScaler = Preprocessing.scaleData(dataDemographic)
-        dataAcademic = Preprocessing.addAverages(dataAcademic)
         dataAcademic = dataAcademic.drop(removedAcademicFeatures, axis=1)
         dataDemographic = dataDemographic.drop(removedDemographicFeatures, axis=1)
         data = Preprocessing.getDummies(data)
-        # data = data.reindex(columns=["Entry Score", "Average score units", "Average grades", "Average units approved", "Success"])
+        dataAcademic = dataAcademic[["Entry score", "Average scored units", "Average grades", "Average units approved", "Success"]]
         data, scaler = Preprocessing.scaleData(data)
 
 

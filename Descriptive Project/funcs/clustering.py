@@ -1,6 +1,5 @@
 import sklearn
 import sklearn.preprocessing
-from funcs.preparation import FeatureSelection
 import sompy
 import numpy as np
 import pandas as pd
@@ -80,9 +79,9 @@ class Clustering:
         Returns:
             tuple[sompy.hitmap.HitMapView, pd.DataFrame]: _description_
         """        
+        bmus = somDetails[0].project_data(data)
         somDetails[0].cluster(n_clusters=nClusters)
         labels = getattr(somDetails[0], 'cluster_labels')
-        bmus = somDetails[0].project_data(somDetails[3])
         data['bmu'] = bmus
         data['label'] = labels[data['bmu']]
         data.drop("bmu", axis=1, inplace=True)
